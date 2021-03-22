@@ -55,7 +55,7 @@ class HandleCommand:
     # import socket
     #
     def send_command(self, com_str):
-        time.sleep(2)
+        time.sleep(0)
         print(com_str)
         # sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # sock.connect((self.host, self.port))
