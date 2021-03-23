@@ -61,6 +61,7 @@ if __name__ == "__main__":
             dist = get_distance_lidar(depth=depth, depth_scale=depth_scale)
             if dist == 0:
                 continue
+
             if aligned_status == 0:
 
                 dist_to_drone = np.append(dist_to_drone, dist)
@@ -70,7 +71,7 @@ if __name__ == "__main__":
                     continue
                 elif len(dist_to_drone) == 10:
                     mean_dist = np.median(dist_to_drone)
-                    print(mean_dist)
+                    print('init dist: ', mean_dist)
                     mean_center_of_drone = np.median(centers_of_drone)
                     AligningDrone.set_init_coords(mean_dist, mean_center_of_drone)
                     aligned_status = AligningDrone.initial_move()
@@ -84,7 +85,7 @@ if __name__ == "__main__":
                     continue
                 elif len(dist_to_drone) == 10:
                     mean_dist = np.median(dist_to_drone)
-                    print(mean_dist)
+                    print('last dist: ',mean_dist)
                     mean_center_of_drone = np.median(centers_of_drone)
                     AligningDrone.set_last_coords(mean_dist, mean_center_of_drone)
                     aligned_status = AligningDrone.handle_aligning()

@@ -55,7 +55,7 @@ class HandleCommand:
     # import socket
     #
     def send_command(self, com_str):
-        time.sleep(0)
+        time.sleep(5)
         print(com_str)
         # sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # sock.connect((self.host, self.port))
@@ -170,7 +170,7 @@ class AlignDrone(HandleCommand):
         arg = (self.init_distance ** 2 + self.R ** 2 - self.last_distance ** 2) / \
               (2 * self.init_distance * self.R)
         angle = math.degrees(math.acos(arg))
-        print(angle)
+        print('angle: ', angle)
         return angle
 
     def initial_move(self):
@@ -192,16 +192,20 @@ class AlignDrone(HandleCommand):
         if self.vector_dist < self.tresh_meters:
             if self.vector_x < self.thresh_pixels:
                 move_angle = 90 - gamma
+                print('moved left')
             elif self.vector_x > self.thresh_pixels:
                 move_angle = 90 + gamma
+                print('moved right')
             move_arg = 0.011 * move_angle
             self.command_yaw = "yaw,{}".format(move_arg)
 
         if self.vector_dist > self.tresh_meters:
             if self.vector_x > self.thresh_pixels:
                 move_angle = 270 - gamma
+                print('moved right')
             elif self.vector_x < self.thresh_pixels:
                 move_angle = gamma - 90
+                print('moved left')
             move_arg = 0.011 * move_angle
             self.command_yaw = "yaw,-{}".format(move_arg)
         self.move_back()
