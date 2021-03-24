@@ -202,8 +202,6 @@ class AlignDrone(HandleCommand):
             else:
                 move_angle = 90
                 print('thresholded {}'.format(self.vector_x))
-            move_arg = 0.011 * move_angle
-            self.command_yaw = "{} yaw,(+){}".format(move_angle, round(move_arg, 3))
 
         if self.vector_dist > self.tresh_meters:
             if self.vector_x > self.thresh_pixels:
@@ -213,13 +211,17 @@ class AlignDrone(HandleCommand):
                 move_angle = gamma - 90
                 print('moved left {}'.format(self.vector_x))
             else:
-                move_angle = 90
+                move_angle = -90
                 print('thresholded -{}'.format(self.vector_x))
-            move_arg = 0.011 * move_angle
-            self.command_yaw = "{} yaw,(-){}".format(move_angle, round(move_arg, 3))
+        move_arg = 0.011 * move_angle
+        self.command_yaw = "{} yaw,{}".format(move_angle, round(move_arg, 3))
+
         self.move_back()
         self.send_command(com_str=self.command_yaw)
-        return 2
+        if -15 <= move_angle <= 15:
+            return 2
+        else:
+            return 0
 
 
 rect_endpoint_tmp = []

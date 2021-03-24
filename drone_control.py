@@ -90,7 +90,6 @@ if __name__ == "__main__":
                 if len(dist_to_drone) < 10:
                     print('last')
                     time.sleep(1)
-                    continue
                 elif len(dist_to_drone) == 10:
                     mean_dist = np.median(dist_to_drone)
                     print('last dist: ', mean_dist)
