@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import cv2
 from HandleCommands import HandleCommand, IntelCamera, select_object, get_contours, initialization, AlignDrone
@@ -68,10 +70,13 @@ if __name__ == "__main__":
 
                 centers_of_drone = np.append(centers_of_drone, drone_center[0])
                 if len(dist_to_drone) < 10:
+                    print('init')
+                    time.sleep(1)
                     continue
                 elif len(dist_to_drone) == 10:
                     mean_dist = np.median(dist_to_drone)
                     print('init dist: ', mean_dist)
+
                     mean_center_of_drone = np.median(centers_of_drone)
                     AligningDrone.set_init_coords(mean_dist, mean_center_of_drone)
                     aligned_status = AligningDrone.initial_move()
@@ -79,13 +84,17 @@ if __name__ == "__main__":
                     centers_of_drone = np.array([])
                 continue
             elif aligned_status == 1:
+
                 dist_to_drone = np.append(dist_to_drone, dist)
                 centers_of_drone = np.append(centers_of_drone, drone_center[0])
                 if len(dist_to_drone) < 10:
+                    print('last')
+                    time.sleep(1)
                     continue
                 elif len(dist_to_drone) == 10:
                     mean_dist = np.median(dist_to_drone)
-                    print('last dist: ',mean_dist)
+                    print('last dist: ', mean_dist)
+
                     mean_center_of_drone = np.median(centers_of_drone)
                     AligningDrone.set_last_coords(mean_dist, mean_center_of_drone)
                     aligned_status = AligningDrone.handle_aligning()

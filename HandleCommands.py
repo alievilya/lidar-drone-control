@@ -154,9 +154,9 @@ class AlignDrone(HandleCommand):
         super().__init__()
         self.roll_val = 0.1
         self.R = 0.5  # distance of the roll operation (m)
-        self.thresh_pixels = 0  # threshold
+        self.height = 1.05  # height from drone (m)
+        self.thresh_pixels = 15  # threshold
         self.tresh_meters = 0  # pogreshnost (m)
-
 
     def set_init_coords(self, distance, center_value):
         self.init_distance = distance
@@ -167,10 +167,13 @@ class AlignDrone(HandleCommand):
         self.last_center_value = center_value
 
     def find_angle(self):
-        arg = (self.init_distance ** 2 + self.R ** 2 - self.last_distance ** 2) / \
-              (2 * self.init_distance * self.R)
+        self.init_distance_x = (self.init_distance ** 2 - self.height ** 2) ** 0.5
+        self.last_distance_x = (self.last_distance ** 2 - self.height ** 2) ** 0.5
+        print('init x:', self.init_distance_x, '\nlast x:', self.last_distance_x )
+        arg = (self.init_distance_x ** 2 + self.R ** 2 - self.last_distance_x ** 2) / \
+              (2 * self.init_distance_x * self.R)
         angle = math.degrees(math.acos(arg))
-        print('angle: ', angle)
+        print('angle gamma: ', angle)
         return angle
 
     def initial_move(self):
@@ -178,36 +181,42 @@ class AlignDrone(HandleCommand):
         self.send_command(com_str=self.command_str)
         return 1
 
-
     def move_back(self):
         self.command_str = "roll,-{}".format(self.roll_val)
         self.send_command(com_str=self.command_str)
 
     def handle_aligning(self):
         self.vector_x = self.last_center_value - self.init_center_value
-        self.vector_dist = self.last_distance - self.init_distance
         gamma = self.find_angle()
+        self.vector_dist = self.last_distance_x - self.init_distance_x
         move_angle = 0
+
         self.command_yaw = ""
         if self.vector_dist < self.tresh_meters:
-            if self.vector_x < self.thresh_pixels:
+            if self.vector_x < -1*self.thresh_pixels:  # mb set move_angle 90, if in threshold value
                 move_angle = 90 - gamma
-                print('moved left')
+                print('moved left {}'.format(self.vector_x))
             elif self.vector_x > self.thresh_pixels:
                 move_angle = 90 + gamma
-                print('moved right')
+                print('moved right {}'.format(self.vector_x))
+            else:
+                move_angle = 90
+                print('thresholded {}'.format(self.vector_x))
             move_arg = 0.011 * move_angle
-            self.command_yaw = "yaw,{}".format(move_arg)
+            self.command_yaw = "{} yaw,(+){}".format(move_angle, round(move_arg, 3))
 
         if self.vector_dist > self.tresh_meters:
             if self.vector_x > self.thresh_pixels:
                 move_angle = 270 - gamma
-                print('moved right')
-            elif self.vector_x < self.thresh_pixels:
+                print('moved right {}'.format(self.vector_x))
+            elif self.vector_x < -1*self.thresh_pixels:
                 move_angle = gamma - 90
-                print('moved left')
+                print('moved left {}'.format(self.vector_x))
+            else:
+                move_angle = 90
+                print('thresholded -{}'.format(self.vector_x))
             move_arg = 0.011 * move_angle
-            self.command_yaw = "yaw,-{}".format(move_arg)
+            self.command_yaw = "{} yaw,(-){}".format(move_angle, round(move_arg, 3))
         self.move_back()
         self.send_command(com_str=self.command_yaw)
         return 2
