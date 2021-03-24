@@ -169,7 +169,7 @@ class AlignDrone(HandleCommand):
     def find_angle(self):
         self.init_distance_x = (self.init_distance ** 2 - self.height ** 2) ** 0.5
         self.last_distance_x = (self.last_distance ** 2 - self.height ** 2) ** 0.5
-        print('init x:', self.init_distance_x, '\nlast x:', self.last_distance_x )
+        print('init x:', self.init_distance_x, '\nlast x:', self.last_distance_x)
         arg = (self.init_distance_x ** 2 + self.R ** 2 - self.last_distance_x ** 2) / \
               (2 * self.init_distance_x * self.R)
         angle = math.degrees(math.acos(arg))
@@ -193,7 +193,7 @@ class AlignDrone(HandleCommand):
 
         self.command_yaw = ""
         if self.vector_dist < self.tresh_meters:
-            if self.vector_x < -1*self.thresh_pixels:  # mb set move_angle 90, if in threshold value
+            if self.vector_x < -1 * self.thresh_pixels:  # mb set move_angle 90, if in threshold value
                 move_angle = 90 - gamma
                 print('moved left {}'.format(self.vector_x))
             elif self.vector_x > self.thresh_pixels:
@@ -207,7 +207,7 @@ class AlignDrone(HandleCommand):
             if self.vector_x > self.thresh_pixels:
                 move_angle = 270 - gamma
                 print('moved right {}'.format(self.vector_x))
-            elif self.vector_x < -1*self.thresh_pixels:
+            elif self.vector_x < -1 * self.thresh_pixels:
                 move_angle = gamma - 90
                 print('moved left {}'.format(self.vector_x))
             else:
