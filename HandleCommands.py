@@ -166,7 +166,7 @@ class AlignDrone(HandleCommand):
         self.last_distance = distance
         self.last_center_value = center_value
 
-    def find_angle(self):
+    def _find_angle(self):
         self.init_distance_x = (self.init_distance ** 2 - self.height ** 2) ** 0.5
         self.last_distance_x = (self.last_distance ** 2 - self.height ** 2) ** 0.5
         print('init x:', self.init_distance_x, '\nlast x:', self.last_distance_x)
@@ -187,7 +187,7 @@ class AlignDrone(HandleCommand):
 
     def handle_aligning(self):
         self.vector_x = self.last_center_value - self.init_center_value
-        gamma = self.find_angle()
+        gamma = self._find_angle()
         self.vector_dist = self.last_distance_x - self.init_distance_x
         move_angle = 0
 
