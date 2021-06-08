@@ -1,3 +1,5 @@
+import os
+
 import cv2
 import imutils
 import numpy as np
@@ -18,10 +20,12 @@ def histogram_equalize(image):
 
 
 def image_filtering(image):
-    low_hsv = (5, 0, 235)
-    high_hsv = (255, 50, 255)
     image = imutils.resize(image, width=640)
     img_HSV = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    sat_max = int(np.max(img_HSV[:, :, 2]))
+    sat_low = int(sat_max*0.9)
+    low_hsv = (0, 0, sat_low)
+    high_hsv = (255, 50, sat_max)
     img_threshold = cv2.inRange(img_HSV, low_hsv, high_hsv)
     img_gray = cv2.GaussianBlur(img_threshold, (7, 7), 0)
     img_gray = cv2.dilate(img_gray, None, iterations=5)
@@ -55,21 +59,24 @@ def return_bboxes(contours, img=None):
 if __name__ == "__main__":
     to_draw_biggest = True
     ret = True
-    while True:
+    images = os.listdir('data')
+    for img_name in images:
+    # while True:
         # ret, img = cap.read()
         # if not ret:
         #     break
-        img = cv2.imread("data/test10.jpg", cv2.IMREAD_COLOR)
+
+        img = cv2.imread("data/{}".format(img_name), cv2.IMREAD_COLOR)
         img = imutils.resize(img, width=640)
         img_eq = histogram_equalize(img)
-
-        img_threshold = image_filtering(img_eq)
         res_img = np.hstack((img, img_eq))
-        img = img_eq
+        # img = img_eq
+        img_threshold = image_filtering(img)
+
         # res_img2 = np.hstack((img_eq, img_threshold))
         cv2.imshow("res", res_img)
         cv2.imshow("img_threshold", img_threshold)
-        cv2.waitKey(1)
+
         contours, _ = cv2.findContours(img_threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         bboxes = return_bboxes(contours, img=img)
@@ -109,10 +116,9 @@ if __name__ == "__main__":
         cv2.namedWindow("img_threshold", cv2.WINDOW_NORMAL)
 
         cv2.imshow("shapes", img)
-        cv2.imshow("img_threshold", img_threshold)
 
         cv2.resizeWindow("shapes", 1280, 720)
         cv2.resizeWindow("res", 1280, 720)
         cv2.resizeWindow("img_threshold", 1280, 720)
-        cv2.waitKey(1)
+        cv2.waitKey(0)
     cv2.destroyAllWindows()
