@@ -1,4 +1,5 @@
 import cv2
+import imutils
 import numpy as np
 font = cv2.FONT_HERSHEY_COMPLEX
 cap = cv2.VideoCapture("rtsp://admin:admin@192.168.1.52:554/1/h264major")
@@ -7,6 +8,49 @@ def find_centroid(bbox):
     return int((bbox[0] + bbox[2]) / 2), int((bbox[1] + bbox[3]) / 2)
 
 
+def histogram_equalize(image):
+    img_yuv = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
+    # equalize the histogram of the Y channel
+    img_yuv[:, :, 0] = cv2.equalizeHist(img_yuv[:, :, 0])
+    # convert the YUV image back to RGB format
+    image_equalized = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
+    return image_equalized
+
+
+def image_filtering(image):
+    low_hsv = (5, 0, 235)
+    high_hsv = (255, 50, 255)
+    image = imutils.resize(image, width=640)
+    img_HSV = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    img_threshold = cv2.inRange(img_HSV, low_hsv, high_hsv)
+    img_gray = cv2.GaussianBlur(img_threshold, (7, 7), 0)
+    img_gray = cv2.dilate(img_gray, None, iterations=5)
+    # img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    _, img_gray = cv2.threshold(img_gray, 100, 255, cv2.THRESH_BINARY)
+    return img_gray
+
+
+def return_bboxes(contours, img=None):
+    bboxes = []
+    for cnt in contours:
+        approx = cv2.approxPolyDP(cnt, 0.01 * cv2.arcLength(cnt, True), True)
+        area = cv2.contourArea(cnt)
+        if area < 100:
+            continue
+        if len(approx) != 4:
+            continue
+        elif len(approx) == 4:
+            # cv2.drawContours(img, [approx], 0, (255, 0, 0), 5)
+            x = approx.ravel()[0]
+            y = approx.ravel()[1]
+            if img is not None:
+                cv2.putText(img, "Rectangle", (x, y), font, 1, (0))
+            bboxes.append((area, approx))
+    if len(bboxes) == 0:
+        print('no contours detected')
+        return None
+    else:
+        return bboxes
 
 if __name__ == "__main__":
     to_draw_biggest = True
@@ -15,43 +59,23 @@ if __name__ == "__main__":
         # ret, img = cap.read()
         # if not ret:
         #     break
-        img = cv2.imread("data/test.jpg", cv2.IMREAD_COLOR)
+        img = cv2.imread("data/test10.jpg", cv2.IMREAD_COLOR)
+        img = imutils.resize(img, width=640)
+        img_eq = histogram_equalize(img)
 
-        img_HSV = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        # low_hsv = (21, 114, 175)
-        # high_hsv = (32, 140, 200)
-
-        # low_hsv = (15, 114, 175)
-        low_hsv = (5, 0, 235)
-        # high_hsv = (32, 140, 250)
-        high_hsv = (255, 50, 255)
-        img_threshold = cv2.inRange(img_HSV, low_hsv, high_hsv)
-
-        img_gray = cv2.GaussianBlur(img_threshold, (17, 17), 0)
-        img_gray = cv2.dilate(img_gray, None, iterations=4)
-        # img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-        # _, img_gray = cv2.threshold(img_gray, 200, 255, cv2.THRESH_BINARY)
-
+        img_threshold = image_filtering(img_eq)
+        res_img = np.hstack((img, img_eq))
+        img = img_eq
+        # res_img2 = np.hstack((img_eq, img_threshold))
+        cv2.imshow("res", res_img)
+        cv2.imshow("img_threshold", img_threshold)
+        cv2.waitKey(1)
         contours, _ = cv2.findContours(img_threshold, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        bboxes = []
-        for cnt in contours:
-            approx = cv2.approxPolyDP(cnt, 0.01*cv2.arcLength(cnt, True), True)
-            area = cv2.contourArea(cnt)
-            if area < 200:
-                continue
 
-            if len(approx) != 4:
-                continue
-            elif len(approx) == 4:
-                # cv2.drawContours(img, [approx], 0, (255, 0, 0), 5)
-                x = approx.ravel()[0]
-                y = approx.ravel()[1]
-                cv2.putText(img, "Rectangle", (x, y), font, 1, (0))
-                bboxes.append((area, approx))
-
+        bboxes = return_bboxes(contours, img=img)
+        if not bboxes:
+            continue
         biggest_contour = max(bboxes, key=lambda x: x[0])[1]
-        # biggest_contour = bboxes[6][1]
         cv2.drawContours(img, [biggest_contour], 0, (255, 0, 0), 5)
         # max_bbox = [biggest_contour[n][0] for n in range(len(biggest_contour))]
         (x, y, w, h) = cv2.boundingRect(biggest_contour)
@@ -66,13 +90,13 @@ if __name__ == "__main__":
         elif x_delta < -10:
             print('move left')
         else:
-            print('x is ok')
+            print('x: ok')
         if y_delta > 10:
             print('step back')
         elif y_delta < -10:
             print('step forward')
         else:
-            print('y is ok')
+            print('y: ok')
 
         cv2.rectangle(img, [bbox_max[0], bbox_max[1]], [bbox_max[2], bbox_max[3]], (0, 0, 255))
         cv2.line(img, [img_centroid[0], img_centroid[1]-15], [img_centroid[0], img_centroid[1]+15], color=(0, 255, 0))
@@ -81,16 +105,14 @@ if __name__ == "__main__":
         cv2.circle(img, (bbox_centroid[0], bbox_centroid[1]), img.shape[0]//100, (0, 0, 255), -1)
 
         cv2.namedWindow("shapes", cv2.WINDOW_NORMAL)
-        # cv2.namedWindow("img_gray", cv2.WINDOW_NORMAL)
+        cv2.namedWindow("res", cv2.WINDOW_NORMAL)
         cv2.namedWindow("img_threshold", cv2.WINDOW_NORMAL)
 
         cv2.imshow("shapes", img)
-        # cv2.imshow("img_gray", img_gray)
-        # img_threshold = cv2.cvtColor(img_threshold, cv2.COLOR_HSV2BGR)
         cv2.imshow("img_threshold", img_threshold)
 
         cv2.resizeWindow("shapes", 1280, 720)
-        cv2.resizeWindow("Threshold", 1280, 720)
+        cv2.resizeWindow("res", 1280, 720)
         cv2.resizeWindow("img_threshold", 1280, 720)
         cv2.waitKey(1)
     cv2.destroyAllWindows()
