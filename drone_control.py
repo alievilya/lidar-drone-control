@@ -2,7 +2,7 @@ import time
 
 import numpy as np
 import cv2
-from HandleCommands import HandleCommand, IntelCamera, select_object, get_contours, initialization, AlignDrone
+from HandleCommandsLidar import HandleCommand, IntelCamera, select_object, get_contours, initialization, AlignDrone
 
 
 # os.chdir("C:/Users/User/IdeaProjects/ugcs-java-sdk/ucs-client/src/main/java/com/ugcs/ucs/client/samples")

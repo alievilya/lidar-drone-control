@@ -3,6 +3,8 @@ import os
 import cv2
 import imutils
 import numpy as np
+from HandleCommands import HandleCommand, IntelCamera, select_object, get_contours, initialization, AlignDrone
+
 font = cv2.FONT_HERSHEY_COMPLEX
 cap = cv2.VideoCapture("rtsp://admin:admin@192.168.1.52:554/1/h264major")
 
@@ -19,27 +21,19 @@ def histogram_equalize(image):
     return image_equalized
 
 
-def image_filtering(image, mode='white'):
+def image_filtering(image):
     image = imutils.resize(image, width=640)
     img_HSV = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    if mode == "white":
-        sat_max = int(np.max(img_HSV[:, :, 2]))
-        sat_low = int(sat_max*0.8)
-        low_hsv = (0, 0, sat_low)
-        high_hsv = (255, 50, sat_max)
-    elif mode == "red":
-        sat_max = int(np.max(img_HSV[:, :, 2]))
-        sat_low = int(sat_max * 0.8)
-        low_hsv = (0, 0, sat_low)
-        high_hsv = (255, 50, sat_max)
-
+    sat_max = int(np.max(img_HSV[:, :, 2]))
+    sat_low = int(sat_max*0.6)
+    low_hsv = (0, 0, sat_low)
+    high_hsv = (255, 50, sat_max)
     img_threshold = cv2.inRange(img_HSV, low_hsv, high_hsv)
     img_gray = cv2.GaussianBlur(img_threshold, (7, 7), 0)
     img_gray = cv2.dilate(img_gray, None, iterations=5)
     # img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    _, img_gray = cv2.threshold(img_gray, 100, 255, cv2.THRESH_BINARY)
-    # img_gray = cv2.adaptiveThreshold(img_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-    #                                cv2.THRESH_BINARY, 51, 2)
+    img_gray = cv2.adaptiveThreshold(img_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                   cv2.THRESH_BINARY, 51, 2)
     return img_gray
 
 
@@ -69,13 +63,17 @@ if __name__ == "__main__":
     to_draw_biggest = True
     ret = True
     images = os.listdir('data')
+    aligned_status = 0
+    CommandsHandler = HandleCommand()
+    AligningDrone = AlignDrone()
+
     for img_name in images:
     # while True:
         # ret, img = cap.read()
         # if not ret:
         #     break
 
-        img = cv2.imread("data/{}".format("test14.jpg"), cv2.IMREAD_COLOR)
+        img = cv2.imread("data/{}".format("test13.jpg"), cv2.IMREAD_COLOR)
         img = imutils.resize(img, width=640)
         img_eq = histogram_equalize(img)
         res_img = np.hstack((img, img_eq))
@@ -85,7 +83,7 @@ if __name__ == "__main__":
         # res_img2 = np.hstack((img_eq, img_threshold))
         cv2.imshow("res", res_img)
         cv2.imshow("img_threshold", img_threshold)
-
+        cv2.waitKey(0)
 
         contours, _ = cv2.findContours(img_threshold, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -102,6 +100,57 @@ if __name__ == "__main__":
         bbox_centroid = find_centroid(bbox_max)
         x_delta, y_delta = [img_centroid[n] - bbox_centroid[n] for n in range(2)]
         #  if x_delta > 0 than need to move right, y_delta > 0 then need to move back
+
+        #  aligned statuses meanings:
+        #  0 - not aligned yet,
+        #  1 - first command was sent (roll 0.1)
+        #  2 - successfully performed aligning
+        #  3 - aligning is not necessary
+        if aligned_status == 0:
+            dist_to_drone = np.append(dist_to_drone, dist)
+            centers_of_drone = np.append(centers_of_drone, drone_center[0])
+            if len(dist_to_drone) < 10:
+                print('init')
+                time.sleep(1)
+            elif len(dist_to_drone) == 10:
+                mean_dist = np.median(dist_to_drone)
+                print('init dist: ', mean_dist)
+                mean_center_of_drone = np.median(centers_of_drone)
+                AligningDrone.set_init_coords(mean_dist, mean_center_of_drone)
+                aligned_status = AligningDrone.initial_move()
+                dist_to_drone = np.array([])
+                centers_of_drone = np.array([])
+            continue
+        elif aligned_status == 1:
+            dist_to_drone = np.append(dist_to_drone, dist)
+            centers_of_drone = np.append(centers_of_drone, drone_center[0])
+            if len(dist_to_drone) < 10:
+                print('last')
+                time.sleep(1)
+            elif len(dist_to_drone) == 10:
+                mean_dist = np.median(dist_to_drone)
+                print('last dist: ', mean_dist)
+                mean_center_of_drone = np.median(centers_of_drone)
+                AligningDrone.set_last_coords(mean_dist, mean_center_of_drone)
+                aligned_status = AligningDrone.handle_aligning()
+                dist_to_drone = np.array([])
+                centers_of_drone = np.array([])
+            continue
+        elif aligned_status == 2:
+            print('drone is aligned')
+            aligned_status = 3
+
+        condition2d = CommandsHandler.update2d(subtraction=subtraction)
+        # comm = CommandsHandler.sendcommand2d()
+
+        commands_dist = np.append(commands_dist, dist)
+        if len(commands_dist) == 10:
+            mean_dist = np.median(commands_dist)
+            commands_dist = np.array([])
+        if condition2d:
+            condition3d = CommandsHandler.update3d(distance=mean_dist)
+            print(condition3d)
+
         if x_delta > 10:
             print('move right')
         elif x_delta < -10:
