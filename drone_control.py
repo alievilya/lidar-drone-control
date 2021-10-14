@@ -37,6 +37,11 @@ if __name__ == "__main__":
     area_center = None
     aligned_status = 0
 
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    writer = cv2.VideoWriter("output.avi", fourcc, 25, (1024, 768))
+
+
+
     while True:
         frames = pipeline.wait_for_frames()
         depth = frames.get_depth_frame()
@@ -61,46 +66,48 @@ if __name__ == "__main__":
         dist = 0
         if (x, y, w, h) != (0, 0, 0, 0):
             dist = get_distance_lidar(depth=depth, depth_scale=depth_scale)
-            if dist == 0:
-                continue
+            # if dist == 0:
+            #     continue
             #  aligned statuses meanings:
             #  0 - not aligned yet,
             #  1 - first command was sent (roll 0.1)
             #  2 - successfully performed aligning
             #  3 - aligning is not necessary
-            if aligned_status == 0:
-                dist_to_drone = np.append(dist_to_drone, dist)
-                centers_of_drone = np.append(centers_of_drone, drone_center[0])
-                if len(dist_to_drone) < 10:
-                    print('init')
-                    time.sleep(1)
-                elif len(dist_to_drone) == 10:
-                    mean_dist = np.median(dist_to_drone)
-                    print('init dist: ', mean_dist)
-                    mean_center_of_drone = np.median(centers_of_drone)
-                    AligningDrone.set_init_coords(mean_dist, mean_center_of_drone)
-                    aligned_status = AligningDrone.initial_move()
-                    dist_to_drone = np.array([])
-                    centers_of_drone = np.array([])
-                continue
-            elif aligned_status == 1:
-                dist_to_drone = np.append(dist_to_drone, dist)
-                centers_of_drone = np.append(centers_of_drone, drone_center[0])
-                if len(dist_to_drone) < 10:
-                    print('last')
-                    time.sleep(1)
-                elif len(dist_to_drone) == 10:
-                    mean_dist = np.median(dist_to_drone)
-                    print('last dist: ', mean_dist)
-                    mean_center_of_drone = np.median(centers_of_drone)
-                    AligningDrone.set_last_coords(mean_dist, mean_center_of_drone)
-                    aligned_status = AligningDrone.handle_aligning()
-                    dist_to_drone = np.array([])
-                    centers_of_drone = np.array([])
-                continue
-            elif aligned_status == 2:
-                print('drone is aligned')
-                aligned_status = 3
+
+
+            # if aligned_status == 0:
+            #     dist_to_drone = np.append(dist_to_drone, dist)
+            #     centers_of_drone = np.append(centers_of_drone, drone_center[0])
+            #     if len(dist_to_drone) < 10:
+            #         print('init')
+            #         time.sleep(1)
+            #     elif len(dist_to_drone) == 10:
+            #         mean_dist = np.median(dist_to_drone)
+            #         print('init dist: ', mean_dist)
+            #         mean_center_of_drone = np.median(centers_of_drone)
+            #         AligningDrone.set_init_coords(mean_dist, mean_center_of_drone)
+            #         aligned_status = AligningDrone.initial_move()
+            #         dist_to_drone = np.array([])
+            #         centers_of_drone = np.array([])
+            #     continue
+            # elif aligned_status == 1:
+            #     dist_to_drone = np.append(dist_to_drone, dist)
+            #     centers_of_drone = np.append(centers_of_drone, drone_center[0])
+            #     if len(dist_to_drone) < 10:
+            #         print('last')
+            #         time.sleep(1)
+            #     elif len(dist_to_drone) == 10:
+            #         mean_dist = np.median(dist_to_drone)
+            #         print('last dist: ', mean_dist)
+            #         mean_center_of_drone = np.median(centers_of_drone)
+            #         AligningDrone.set_last_coords(mean_dist, mean_center_of_drone)
+            #         aligned_status = AligningDrone.handle_aligning()
+            #         dist_to_drone = np.array([])
+            #         centers_of_drone = np.array([])
+            #     continue
+            # elif aligned_status == 2:
+            #     print('drone is aligned')
+            #     aligned_status = 3
 
             condition2d = CommandsHandler.update2d(subtraction=subtraction)
             # comm = CommandsHandler.sendcommand2d()
@@ -117,11 +124,21 @@ if __name__ == "__main__":
             cv2.putText(color_img, ax + CommandsHandler.get_command(index=index), (750, 630 + index * 40), 0, 1,
                         CommandsHandler.get_color(index=index), 4)
         cv2.putText(color_img, str(round(dist, 3)) + ' m', (750, 750), 0, 1, (0, 255, 255), 4)
+
+
+        cv2.putText(color_img, CommandsHandler.get_command_str(), (10, 20), 0, 1, (0, 120, 120), 4)
+        cv2.putText(color_img, CommandsHandler.get_command_str3d(), (10, 80), 0, 1, (0, 120, 120), 4)
+
+
+
+        writer.write(color_img)
         cv2.imshow('rgb', color_img)
+
         # cv2.imshow('image', ir_img)
         # cv2.imshow('thresh', thresh)
         # cv2.imshow('depth', depth_img)
         if cv2.waitKey(20) & 0xFF == 27:
+            writer.release()
             break
 
     cv2.destroyAllWindows()

@@ -24,6 +24,9 @@ class HandleCommand:
         self.color_dict = OrderedDict()
         self.initialized_direction = None
         self.movement_speed = 0.01
+        self.command_str = 'no command'
+        self.command_str3d = 'no command'
+
 
     def set_color(self, condition):
         color = [0, 0, 0]
@@ -55,7 +58,7 @@ class HandleCommand:
     # import socket
     #
     def send_command(self, com_str):
-        time.sleep(5)
+        # time.sleep(5)
         print(com_str)
         # sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # sock.connect((self.host, self.port))
@@ -72,25 +75,25 @@ class HandleCommand:
         # sides control
         # i = 0 -  left right control
         # i = 1 - up and down
-        command_str = None
+        self.command_str = None
         if vector_subtraction[0] < -30:
             self.set_state_more(index=0)
-            command_str = "roll,{}".format(self.movement_speed)
-            self.send_command(com_str=command_str)
+            self.command_str = "roll,{}".format(self.movement_speed)
+            self.send_command(com_str=self.command_str)
         elif vector_subtraction[0] > 30:
             self.set_state_less(index=0)
-            command_str = "roll,-{}".format(self.movement_speed)
-            self.send_command(com_str=command_str)
+            self.command_str = "roll,-{}".format(self.movement_speed)
+            self.send_command(com_str=self.command_str)
         else:
             self.set_state_ok(index=0)
         if vector_subtraction[1] < -30:
             self.set_state_more(index=1)
-            command_str = "throttle,{}".format(self.movement_speed)
-            self.send_command(com_str=command_str)
+            self.command_str = "throttle,{}".format(self.movement_speed)
+            self.send_command(com_str=self.command_str)
         elif vector_subtraction[1] > 30:
             self.set_state_less(index=1)
-            command_str = "throttle,-{}".format(self.movement_speed)
-            self.send_command(com_str=command_str)
+            self.command_str = "throttle,-{}".format(self.movement_speed)
+            self.send_command(com_str=self.command_str)
         else:
             self.set_state_ok(index=1)
 
@@ -116,17 +119,20 @@ class HandleCommand:
         return self.is_2d_states_ok()
 
     def control3d(self, distance):
-        if distance > 0 and 2.1 <= distance <= 2.3:
+        if distance > 0 and 1.1 <= distance <= 1.3:
             self.set_state_ok(index=2)
+            self.command_str3d = "go auto-landing"
+            self.command_str = "go auto-landing"
+
             print('go landing')
-        elif 0 < distance < 2.1:
+        elif 0 < distance < 1.1:
             self.set_state_more(index=2)
-            command_str3d = "pitch,-{}".format(self.movement_speed)
-            self.send_command(com_str=command_str3d)
-        elif distance > 0 and distance > 2.3:
+            self.command_str3d = "pitch,-{}".format(self.movement_speed)
+            self.send_command(com_str=self.command_str3d)
+        elif distance > 0 and distance > 1.3:
             self.set_state_less(index=2)
-            command_str3d = "pitch,{}".format(self.movement_speed)
-            self.send_command(com_str=command_str3d)
+            self.command_str3d = "pitch,{}".format(self.movement_speed)
+            self.send_command(com_str=self.command_str3d)
 
         # elif distance == 0:
         #     command2 = 'err'
@@ -148,6 +154,16 @@ class HandleCommand:
     def get_command(self, index):
         return self.commands_dict.get(index, "Nan")
 
+    def get_command_str(self):
+        if self.command_str:
+            return self.command_str
+        else:
+            return "no command"
+    def get_command_str3d(self):
+        if self.command_str3d:
+            return self.command_str3d
+        else:
+            return "no command"
 
 class AlignDrone(HandleCommand):
     def __init__(self):
@@ -360,8 +376,10 @@ class IntelCamera:
         self.pipeline = rs.pipeline()
         self.config = rs.config()
         self.config.enable_stream(rs.stream.infrared, 1024, 768, rs.format.y8, 30)
+        # self.config.enable_stream(rs.stream.infrared, 640, 480, rs.format.y8, 30)
         self.config.enable_stream(rs.stream.color, 1920, 1080, rs.format.bgr8, 30)
         self.config.enable_stream(rs.stream.depth, 1024, 768, rs.format.z16, 30)
+        # self.config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
         self.pipeline.start(self.config)
 
         self.profile = self.pipeline.get_active_profile()

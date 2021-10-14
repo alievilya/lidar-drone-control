@@ -75,12 +75,12 @@ if __name__ == "__main__":
         # if not ret:
         #     break
 
-        img = cv2.imread("data/{}".format("test14.jpg"), cv2.IMREAD_COLOR)
+        img = cv2.imread("data/{}".format(img_name), cv2.IMREAD_COLOR)
         img = imutils.resize(img, width=640)
         img_eq = histogram_equalize(img)
         res_img = np.hstack((img, img_eq))
         # img = img_eq
-        img_threshold = image_filtering(img)
+        img_threshold = image_filtering(img, mode="red")
 
         # res_img2 = np.hstack((img_eq, img_threshold))
         cv2.imshow("res", res_img)
@@ -131,4 +131,4 @@ if __name__ == "__main__":
         cv2.resizeWindow("res", 1280, 720)
         cv2.resizeWindow("img_threshold", 1280, 720)
         cv2.waitKey(0)
-    cv2.destroyAllWindows()
+        cv2.destroyAllWindows()
